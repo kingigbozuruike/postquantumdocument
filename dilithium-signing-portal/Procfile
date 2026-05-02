@@ -1,9 +1,8 @@
 # Procfile for Railway, Render, and other platforms
-# Specifies how to build and run the application
+# Note: Railway uses Dockerfile if present, so this file is only used if Dockerfile is not available
 
 # Web process: Start the backend server
-# LD_LIBRARY_PATH points to the liboqs library built during the build phase
-web: cd backend && LD_LIBRARY_PATH=/app/.oqs/lib:$LD_LIBRARY_PATH source venv/bin/activate && python main.py
+web: cd backend && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
 
 # Worker process: Run benchmarks (optional)
 # worker: cd backend && source venv/bin/activate && python benchmark.py
