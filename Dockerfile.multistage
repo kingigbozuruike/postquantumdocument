@@ -1,0 +1,43 @@
+FROM python:3.12-slim as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    git cmake build-essential gcc libtool autoconf pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build liboqs
+RUN cd /tmp && \
+    git clone --depth 1 https://github.com/open-quantum-safe/liboqs.git && \
+    cd liboqs && \
+    mkdir build && cd build && \
+    cmake -DCMAKE_INSTALL_PREFIX=/usr/local \
+          -DBUILD_SHARED_LIBS=ON \
+          -DCMAKE_BUILD_TYPE=Release \
+          .. && \
+    make -j$(nproc) && \
+    make install
+
+# ============================================
+# Final stage (minimal runtime image)
+FROM python:3.12-slim
+
+# Copy only the compiled liboqs from builder
+COPY --from=builder /usr/local/lib/liboqs* /usr/lib/
+COPY --from=builder /usr/local/include/oqs /usr/include/oqs
+
+# Update library cache
+RUN ldconfig
+
+# Copy the application
+COPY dilithium-signing-portal /app
+WORKDIR /app/backend
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Verify import
+RUN python3 -c "import oqs; print('✅ liboqs-python ready')"
+
+EXPOSE 8000
+ENV LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

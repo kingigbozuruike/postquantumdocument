@@ -1,0 +1,64 @@
+FROM python:3.12-slim
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    cmake \
+    build-essential \
+    gcc \
+    libtool \
+    autoconf \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build liboqs with all options enabled
+RUN cd /tmp && \
+    git clone --depth 1 https://github.com/open-quantum-safe/liboqs.git && \
+    cd liboqs && \
+    mkdir build && cd build && \
+    cmake -DCMAKE_INSTALL_PREFIX=/usr/local \
+          -DBUILD_SHARED_LIBS=ON \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DOQS_ENABLE_SHA3=ON \
+          .. && \
+    make -j$(nproc) && \
+    make install && \
+    cd /tmp && rm -rf liboqs
+
+# Copy compiled library to /usr/lib (guaranteed searchable by ctypes)
+RUN cp -v /usr/local/lib/liboqs* /usr/lib/ 2>/dev/null || true && \
+    ldconfig
+
+# Verify liboqs is accessible
+RUN ls -la /usr/lib/liboqs* && \
+    ldconfig -p | grep liboqs
+
+# Copy the application
+COPY dilithium-signing-portal /app
+WORKDIR /app/backend
+
+# Install Python dependencies AFTER liboqs is in standard location
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Verify import works BEFORE starting server
+RUN python3 << 'EOF'
+import sys
+try:
+    import oqs
+    sig = oqs.Signature('ML-DSA-65')
+    print('✅ SUCCESS: liboqs-python is working')
+    print(f'   - Algorithm: ML-DSA-65')
+    print(f'   - Library loaded from system')
+except Exception as e:
+    print(f'❌ FAILED: {e}', file=sys.stderr)
+    sys.exit(1)
+EOF
+
+# Expose port
+EXPOSE 8000
+
+# Ensure library path is set (defense in depth)
+ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:$LD_LIBRARY_PATH
+
+# Start the server
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
