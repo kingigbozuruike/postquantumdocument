@@ -37,9 +37,10 @@ RUN echo "/usr/local/lib" > /etc/ld.so.conf.d/liboqs.conf && ldconfig
 # Set LD_LIBRARY_PATH EARLY, before pip install and import tests
 ENV LD_LIBRARY_PATH=/usr/local/lib
 
-# Copy the application (Dockerfile is in dilithium-signing-portal/, so copy from there)
-COPY backend /app/backend
-COPY frontend /app/frontend
+# Copy the application
+# Build context is dilithium-signing-portal/backend, so use relative paths
+COPY . /app/backend
+COPY ../frontend /app/frontend
 WORKDIR /app/backend
 
 # Install Python dependencies
