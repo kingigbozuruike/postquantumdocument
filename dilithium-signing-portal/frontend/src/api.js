@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8000'
+const API_BASE = 'https://postquantumdocument-production.up.railway.app'
 
 export async function generateKeys() {
   try {
