@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+echo "Building liboqs from source..."
+
+cd /tmp
+git clone https://github.com/open-quantum-safe/liboqs.git
+cd liboqs
+
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=/app/.oqs ..
+make
+make install
+
+echo "liboqs built successfully at /app/.oqs"

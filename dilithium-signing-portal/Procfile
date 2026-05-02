@@ -1,11 +1,9 @@
 # Procfile for Railway, Render, and other platforms
 # Specifies how to build and run the application
 
-# Release phase: Build liboqs before starting the app
-release: bash scripts/build_liboqs.sh
-
 # Web process: Start the backend server
-web: cd backend && source venv/bin/activate && python main.py
+# LD_LIBRARY_PATH points to the liboqs library built during the build phase
+web: cd backend && LD_LIBRARY_PATH=/app/.oqs/lib:$LD_LIBRARY_PATH source venv/bin/activate && python main.py
 
 # Worker process: Run benchmarks (optional)
 # worker: cd backend && source venv/bin/activate && python benchmark.py
