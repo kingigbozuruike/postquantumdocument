@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import GenerateKeys from './components/GenerateKeys'
 import SignDocument from './components/SignDocument'
 import VerifyDocument from './components/VerifyDocument'
@@ -12,6 +12,7 @@ function App() {
   const [signature, setSignature] = useState(null)
   const [signedDocument, setSignedDocument] = useState(null)
   const [verificationRun, setVerificationRun] = useState(false)
+  const [trustedPublicKey, setTrustedPublicKey] = useState(null)
 
   const tabs = [
     { id: 1, label: '1. Generate Keys' },
@@ -19,9 +20,45 @@ function App() {
     { id: 3, label: '3. Verify Document' },
   ]
 
+  // Load keys from sessionStorage on mount
+  useEffect(() => {
+    const savedPubKey = sessionStorage.getItem('publicKey')
+    const savedPrivKey = sessionStorage.getItem('privateKey')
+    const savedTrustedKey = sessionStorage.getItem('trustedPublicKey')
+    
+    if (savedPubKey) setPublicKey(savedPubKey)
+    if (savedPrivKey) setPrivateKey(savedPrivKey)
+    if (savedTrustedKey) setTrustedPublicKey(savedTrustedKey)
+  }, [])
+
+  // Save keys to sessionStorage whenever they change
+  useEffect(() => {
+    if (publicKey) sessionStorage.setItem('publicKey', publicKey)
+  }, [publicKey])
+
+  useEffect(() => {
+    if (privateKey) sessionStorage.setItem('privateKey', privateKey)
+  }, [privateKey])
+
+  useEffect(() => {
+    if (trustedPublicKey) sessionStorage.setItem('trustedPublicKey', trustedPublicKey)
+  }, [trustedPublicKey])
+
   const handleKeysGenerated = (pub, priv) => {
     setPublicKey(pub)
     setPrivateKey(priv)
+  }
+
+  const handleClearKeys = () => {
+    if (window.confirm('Clear all keys and start a fresh demo?')) {
+      setPublicKey(null)
+      setPrivateKey(null)
+      setTrustedPublicKey(null)
+      setSignature(null)
+      setSignedDocument(null)
+      setVerificationRun(false)
+      sessionStorage.clear()
+    }
   }
 
   const handleSignatureGenerated = (sig, doc) => {
@@ -39,8 +76,18 @@ function App() {
       <header className="bg-[#1A3C5E] text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Quantum-Safe Signing Portal</h1>
-          <div className="bg-slate-700 text-slate-100 px-4 py-2 rounded-full text-sm font-semibold">
-            Powered by CRYSTALS-Dilithium
+          <div className="flex items-center gap-4">
+            <div className="bg-slate-700 text-slate-100 px-4 py-2 rounded-full text-sm font-semibold">
+              Powered by CRYSTALS-Dilithium
+            </div>
+            {(publicKey || privateKey) && (
+              <button
+                onClick={handleClearKeys}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors"
+              >
+                Clear Demo
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -110,13 +157,15 @@ function App() {
           <div className="bg-white rounded-lg border border-slate-200 p-8">
             <h2 className="text-3xl font-bold text-[#1A3C5E] mb-4">Verify Document</h2>
             <p className="text-slate-600 text-lg mb-8">
-              Verify a document signature using the public key to ensure authenticity and integrity.
+              Verify a document signature using a trusted public key to ensure authenticity and integrity.
             </p>
             <VerifyDocument
               publicKey={publicKey}
               signature={signature}
               signedDocument={signedDocument}
+              trustedPublicKey={trustedPublicKey}
               onVerificationRun={handleVerificationRun}
+              onTrustedKeyChange={setTrustedPublicKey}
             />
           </div>
         )}

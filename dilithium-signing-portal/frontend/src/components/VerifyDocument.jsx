@@ -2,10 +2,17 @@ import { useState, useRef } from 'react'
 import { verifyDocument } from '../api'
 import PerformanceMetrics from './PerformanceMetrics'
 
-export default function VerifyDocument({ publicKey, signature, signedDocument, onVerificationRun }) {
+export default function VerifyDocument({ 
+  publicKey, 
+  signature, 
+  signedDocument, 
+  trustedPublicKey,
+  onVerificationRun, 
+  onTrustedKeyChange 
+}) {
   const [document, setDocument] = useState(signedDocument || '')
   const [sig, setSig] = useState(signature || '')
-  const [pubKey, setPubKey] = useState(publicKey || '')
+  const [pubKey, setPubKey] = useState(trustedPublicKey || publicKey || '')
   const [result, setResult] = useState(null)
   const [performance, setPerformance] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -17,6 +24,11 @@ export default function VerifyDocument({ publicKey, signature, signedDocument, o
   const [tamperedDocument, setTamperedDocument] = useState(document)
   const [tamperedResult, setTamperedResult] = useState(null)
   const [tamperedPerformance, setTamperedPerformance] = useState(null)
+
+  const handleTrustedKeyChange = (key) => {
+    setPubKey(key)
+    onTrustedKeyChange?.(key)
+  }
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0]
@@ -189,16 +201,36 @@ export default function VerifyDocument({ publicKey, signature, signedDocument, o
           />
         </div>
 
-        {/* Public Key */}
-        <div className="space-y-2">
-          <label className="block text-lg font-semibold text-[#1A3C5E]">Public Key</label>
+        {/* Public Key - Trusted Public Key */}
+        <div className="space-y-2 bg-blue-50 p-6 rounded-lg border border-blue-200">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-2xl">🔑</span>
+            <label className="block text-lg font-semibold text-[#1A3C5E]\">Trusted Public Key</label>
+          </div>
+          
+          <p className="text-sm text-slate-600 mb-3">
+            <strong>Demo Flow:</strong> Paste a public key that you obtained <strong>beforehand</strong> from a trusted source (e.g., website, email, in-person). This simulates using a verified public key.
+          </p>
+
+          {/* Show auto-populated key info */}
+          {publicKey && !trustedPublicKey && (
+            <div className="p-3 bg-slate-100 rounded border border-slate-300 mb-3">
+              <p className="text-sm text-slate-700">
+                <strong>💡 Tip:</strong> You generated a key pair in Step 1. Copy your public key from Step 1 and paste it below to verify documents you signed.
+              </p>
+            </div>
+          )}
+          
           <textarea
             value={pubKey}
-            onChange={(e) => setPubKey(e.target.value)}
+            onChange={(e) => handleTrustedKeyChange(e.target.value)}
             rows={4}
-            className="w-full p-4 border border-slate-300 rounded-lg font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1A3C5E] focus:border-transparent"
-            placeholder="Paste the signer's public key..."
+            className="w-full p-4 border border-slate-300 rounded-lg font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Paste a trusted public key for verification..."
           />
+          <p className="text-xs text-slate-500">
+            This key is NOT persisted. It's stored in memory during your demo session.
+          </p>
         </div>
       </div>
 
